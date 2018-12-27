@@ -119,7 +119,7 @@ class Model:
         self.lr = tf.train.exponential_decay(self.lr, global_step,
                                              self.decay_steps, self.decay_rate, staircase=True)
         '''
-        optimizer = tf.train.AdamOptimizer(self.lr)
+        optimizer = tf.train.AdamOptimizer(float(self.lr))
         self.train_step = optimizer.minimize(self.loss)
 
     def init_sess(self):
