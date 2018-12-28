@@ -242,7 +242,7 @@ class Model:
             costs.append(tmp_cost)
             if verbose and i % verbose == 0:
                 sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
-                    i, num_batches, np.mean(losses[-verbose:]), np.mean(costs[-verbose:])
+                    i, num_batches, np.mean(losses[-verbose:]), self.loss_lambda_value * np.mean(costs[-verbose:])
                 ))
                 sys.stdout.flush()
         loss = np.mean(losses) + self.loss_lambda_value * np.mean(costs)
