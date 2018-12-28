@@ -56,6 +56,7 @@ class Model:
 
         self.decay_steps = args.decay_steps
         self.decay_rate = args.decay_rate
+        self.reg = args.reg
 
         self.train = self.dataSet.train
         self.test = self.dataSet.test
