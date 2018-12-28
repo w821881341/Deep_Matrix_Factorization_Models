@@ -15,8 +15,10 @@ def main():
 
     parser.add_argument('-dataName', action='store', dest='dataName', default='ml-1m')
     parser.add_argument('-negNum', action='store', dest='negNum', default=7, type=int)
-    parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', default=[512])
-    parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', default=[512])
+    parser.add_argument('-lambda_value', action='store', dest='lambda_value',type=float, default=1)
+
+    parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', default=[500])
+    parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', default=[500])
     parser.add_argument('-userLayer', action='store', dest='userLayer', default=[512, 64])
     parser.add_argument('-itemLayer', action='store', dest='itemLayer', default=[1024, 64])
     # parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
@@ -26,6 +28,7 @@ def main():
     parser.add_argument('-earlyStop', action='store', dest='earlyStop', default=5)
     parser.add_argument('-checkPoint', action='store', dest='checkPoint', default='./checkPoint/')
     parser.add_argument('-topK', action='store', dest='topK', default=10)
+
 
     args = parser.parse_args()
 
@@ -59,6 +62,7 @@ class Model:
         self.add_model()
 
         self.add_loss()
+        self.add_cost()
 
         self.lr = args.lr
         self.add_train_step()
@@ -71,6 +75,7 @@ class Model:
 
         self.topK = args.topK
         self.earlyStop = args.earlyStop
+        self.lambda_value = args.lambda_value
 
 
     def add_placeholders(self):
@@ -84,30 +89,30 @@ class Model:
         self.item_user_embedding = tf.transpose(self.user_item_embedding)
 
     def add_model(self):
-        user_input = tf.nn.embedding_lookup(self.user_item_embedding, self.user)
-        item_input = tf.nn.embedding_lookup(self.item_user_embedding, self.item)
+        self.user_input = tf.nn.embedding_lookup(self.user_item_embedding, self.user)
+        self.item_input = tf.nn.embedding_lookup(self.item_user_embedding, self.item)
 
         def init_variable(shape, name):
             return tf.Variable(tf.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.01), name=name)
 
         with tf.name_scope("User_Encoder"):
-            user_V = init_variable([self.shape[1],self.userAutoRec[0]],"User_V")
-            user_W = init_variable([self.userAutoRec[0],self.shape[1]], "User_W")
-            user_mu = init_variable([self.userAutoRec[0]], "User_mu")
-            user_b = init_variable([self.shape[1]], "User_b")
-            user_pre_Encoder = tf.matmul(user_input,user_V)+user_mu
+            self.user_V = init_variable([self.shape[1],self.userAutoRec[0]],"User_V")
+            self.user_W = init_variable([self.userAutoRec[0],self.shape[1]], "User_W")
+            self.user_mu = init_variable([self.userAutoRec[0]], "User_mu")
+            self.user_b = init_variable([self.shape[1]], "User_b")
+            user_pre_Encoder = tf.matmul(self.user_input,self.user_V)+self.user_mu
             self.user_Encoder = tf.nn.sigmoid(user_pre_Encoder)
-            user_pre_Decoder = tf.matmul(self.user_Encoder, user_W) + user_b
+            user_pre_Decoder = tf.matmul(self.user_Encoder, self.user_W) + self.user_b
             self.user_Decoder = tf.identity(user_pre_Decoder)
 
         with tf.name_scope("Item_Encoder"):
-            item_V = init_variable([self.shape[0],self.itemAutoRec[0]],"Item_V")
-            item_W = init_variable([self.itemAutoRec[0],self.shape[0]], "Item_W")
-            item_mu = init_variable([self.itemAutoRec[0]], "Item_mu")
-            item_b = init_variable([self.shape[0]], "Item_b")
-            item_pre_Encoder = tf.matmul(item_input,item_V)+item_mu
+            self.item_V = init_variable([self.shape[0],self.itemAutoRec[0]],"Item_V")
+            self.item_W = init_variable([self.itemAutoRec[0],self.shape[0]], "Item_W")
+            self.item_mu = init_variable([self.itemAutoRec[0]], "Item_mu")
+            self.item_b = init_variable([self.shape[0]], "Item_b")
+            item_pre_Encoder = tf.matmul(self.item_input,self.item_V)+self.item_mu
             self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
-            item_pre_Decoder = tf.matmul(self.item_Encoder, item_W) + item_b
+            item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
             self.item_Decoder = tf.identity(item_pre_Decoder)
 
 
@@ -139,6 +144,15 @@ class Model:
         # regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
         # self.loss = loss + self.reg * regLoss
         self.loss = loss
+
+    def add_cost(self):
+
+        pre_rec_cost = self.user_input - self.user_Decoder
+        rec_cost = tf.square(self.l2_norm(pre_rec_cost))
+        pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
+        reg_cost = self.lambda_value * 0.5 * pre_reg_cost
+
+        self.cost = rec_cost + reg_cost
 
     def add_train_step(self):
         '''
@@ -197,6 +211,7 @@ class Model:
         num_batches = len(train_u) // self.batchSize + 1
 
         losses = []
+        costs = []
         for i in range(num_batches):
             min_idx = i * self.batchSize
             max_idx = np.min([train_len, (i+1)*self.batchSize])
@@ -205,15 +220,16 @@ class Model:
             train_r_batch = train_r[min_idx: max_idx]
 
             feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
-            _, tmp_loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+            _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
             losses.append(tmp_loss)
+            costs.append(tmp_cost)
             if verbose and i % verbose == 0:
-                sys.stdout.write('\r{} / {} : loss = {}'.format(
-                    i, num_batches, np.mean(losses[-verbose:])
+                sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
+                    i, num_batches, np.mean(losses[-verbose:]), np.mean(costs[-verbose:])
                 ))
                 sys.stdout.flush()
-        loss = np.mean(losses)
-        print("\nMean loss in this epoch is: {}".format(loss))
+        loss = np.mean(losses) + np.mean(costs)
+        print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
     def create_feed_dict(self, u, i, r=None, drop=None):
@@ -221,6 +237,9 @@ class Model:
                 self.item: i,
                 self.rate: r,
                 self.drop: drop}
+
+    def l2_norm(self,tensor):
+        return tf.sqrt(tf.reduce_sum(tf.square(tensor)))
 
     def evaluate(self, sess, topK):
         def getHitRatio(ranklist, targetItem):
@@ -234,6 +253,7 @@ class Model:
                 if item == targetItem:
                     return math.log(2) / math.log(i+2)
             return 0
+
 
 
         hr =[]
