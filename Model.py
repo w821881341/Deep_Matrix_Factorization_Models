@@ -15,6 +15,8 @@ def main():
 
     parser.add_argument('-dataName', action='store', dest='dataName', default='ml-1m')
     parser.add_argument('-negNum', action='store', dest='negNum', default=7, type=int)
+    parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', default=[512])
+    parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', default=[512])
     parser.add_argument('-userLayer', action='store', dest='userLayer', default=[512, 64])
     parser.add_argument('-itemLayer', action='store', dest='itemLayer', default=[1024, 64])
     # parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
@@ -50,6 +52,10 @@ class Model:
 
         self.userLayer = args.userLayer
         self.itemLayer = args.itemLayer
+
+        self.userAutoRec = args.userAutoRec
+        self.itemAutoRec = args.itemAutoRec
+
         self.add_model()
 
         self.add_loss()
@@ -84,17 +90,38 @@ class Model:
         def init_variable(shape, name):
             return tf.Variable(tf.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.01), name=name)
 
+        with tf.name_scope("User_Encoder"):
+            user_V = init_variable([self.shape[1],self.userAutoRec[0]],"User_V")
+            user_W = init_variable([self.userAutoRec[0],self.shape[1]], "User_W")
+            user_mu = init_variable([self.userAutoRec[0]], "User_mu")
+            user_b = init_variable([self.shape[1]], "User_b")
+            user_pre_Encoder = tf.matmul(user_input,user_V)+user_mu
+            self.user_Encoder = tf.nn.sigmoid(user_pre_Encoder)
+            user_pre_Decoder = tf.matmul(self.user_Encoder, user_W) + user_b
+            self.user_Decoder = tf.identity(user_pre_Decoder)
+
+        with tf.name_scope("Item_Encoder"):
+            item_V = init_variable([self.shape[0],self.itemAutoRec[0]],"Item_V")
+            item_W = init_variable([self.itemAutoRec[0],self.shape[0]], "Item_W")
+            item_mu = init_variable([self.itemAutoRec[0]], "Item_mu")
+            item_b = init_variable([self.shape[0]], "Item_b")
+            item_pre_Encoder = tf.matmul(item_input,item_V)+item_mu
+            self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
+            item_pre_Decoder = tf.matmul(self.item_Encoder, item_W) + item_b
+            self.item_Decoder = tf.identity(item_pre_Decoder)
+
+
         with tf.name_scope("User_Layer"):
-            user_W1 = init_variable([self.shape[1], self.userLayer[0]], "user_W1")
-            user_out = tf.matmul(user_input, user_W1)
+            user_W1 = init_variable([self.userAutoRec[0], self.userLayer[0]], "user_W1")
+            user_out = tf.matmul(self.user_Encoder, user_W1)
             for i in range(0, len(self.userLayer)-1):
                 W = init_variable([self.userLayer[i], self.userLayer[i+1]], "user_W"+str(i+2))
                 b = init_variable([self.userLayer[i+1]], "user_b"+str(i+2))
                 user_out = tf.nn.relu(tf.add(tf.matmul(user_out, W), b))
 
         with tf.name_scope("Item_Layer"):
-            item_W1 = init_variable([self.shape[0], self.itemLayer[0]], "item_W1")
-            item_out = tf.matmul(item_input, item_W1)
+            item_W1 = init_variable([self.itemAutoRec[0], self.itemLayer[0]], "item_W1")
+            item_out = tf.matmul(self.item_Encoder, item_W1)
             for i in range(0, len(self.itemLayer)-1):
                 W = init_variable([self.itemLayer[i], self.itemLayer[i+1]], "item_W"+str(i+2))
                 b = init_variable([self.itemLayer[i+1]], "item_b"+str(i+2))
