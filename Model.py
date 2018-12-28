@@ -15,7 +15,10 @@ def main():
 
     parser.add_argument('-dataName', action='store', dest='dataName', default='ml-1m')
     parser.add_argument('-negNum', action='store', dest='negNum', default=7, type=int)
-    parser.add_argument('-lambda_value', action='store', dest='lambda_value',type=float, default=1)
+    parser.add_argument('-user_lambda_value', action='store', dest='user_lambda_value',type=float, default=0.1)
+    parser.add_argument('-item_lambda_value', action='store', dest='item_lambda_value', type=float, default=0.1)
+    parser.add_argument('-cost_lambda_value', action='store', dest='cost_lambda_value', type=float, default=1)
+    parser.add_argument('-loss_lambda_value', action='store', dest='loss_lambda_value', type=float, default=1)
 
     parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', type=int ,default=500)
     parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', type=int ,default=500)
@@ -48,7 +51,11 @@ class Model:
         self.test = self.dataSet.test
 
         self.negNum = args.negNum
-        self.lambda_value = args.lambda_value
+        self.user_lambda_value = args.user_lambda_value
+        self.item_lambda_value = args.item_lambda_value
+        self.cost_lambda_value = args.cost_lambda_value
+        self.loss_lambda_value = args.loss_lambda_value
+
         self.testNeg = self.dataSet.getTestNeg(self.test, 99)
         self.add_embedding_matrix()
 
@@ -151,14 +158,16 @@ class Model:
         user_pre_rec_cost = self.user_input - self.user_Decoder
         user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
         user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
-        user_reg_cost = self.lambda_value * 0.5 * user_pre_reg_cost
+        user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
+        user_cost = user_rec_cost + user_reg_cost
         
         item_pre_rec_cost = self.item_input - self.item_Decoder
         item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
         item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
-        item_reg_cost = self.lambda_value * 0.5 * item_pre_reg_cost
+        item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
+        item_cost = item_rec_cost + item_reg_cost
 
-        self.cost = 0.5 * (user_rec_cost + user_reg_cost+item_rec_cost+item_reg_cost)
+        self.cost = user_cost + self.cost_lambda_value * item_cost
 
     def add_train_step(self):
         '''
@@ -231,10 +240,10 @@ class Model:
             costs.append(tmp_cost)
             if verbose and i % verbose == 0:
                 sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
-                    i, num_batches, np.mean(losses[-verbose:]), 0.0001*np.mean(costs[-verbose:])
+                    i, num_batches, np.mean(losses[-verbose:]), np.mean(costs[-verbose:])
                 ))
                 sys.stdout.flush()
-        loss = np.mean(losses) + 0.0001 * np.mean(costs)
+        loss = np.mean(losses) + self.loss_lambda_value * np.mean(costs)
         print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
