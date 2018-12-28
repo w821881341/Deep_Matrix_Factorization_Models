@@ -148,12 +148,17 @@ class Model:
 
     def add_cost(self):
 
-        pre_rec_cost = self.user_input - self.user_Decoder
-        rec_cost = tf.square(self.l2_norm(pre_rec_cost))
-        pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
-        reg_cost = self.lambda_value * 0.5 * pre_reg_cost
+        user_pre_rec_cost = self.user_input - self.user_Decoder
+        user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
+        user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
+        user_reg_cost = self.lambda_value * 0.5 * user_pre_reg_cost
+        
+        item_pre_rec_cost = self.item_input - self.item_Decoder
+        item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
+        item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
+        item_reg_cost = self.lambda_value * 0.5 * item_pre_reg_cost
 
-        self.cost = rec_cost + reg_cost
+        self.cost = 0.5 * (user_rec_cost + user_reg_cost+item_rec_cost+item_reg_cost)
 
     def add_train_step(self):
         '''
