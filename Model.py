@@ -25,13 +25,15 @@ def main():
     parser.add_argument('-userLayer', action='store', dest='userLayer', default=[512, 64])
     parser.add_argument('-itemLayer', action='store', dest='itemLayer', default=[1024, 64])
     # parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
-    parser.add_argument('-lr', action='store', dest='lr', default=0.0001)
+    parser.add_argument('-lr', action='store', dest='lr', type=float, default=0.0001)
     parser.add_argument('-maxEpochs', action='store', dest='maxEpochs', default=50, type=int)
     parser.add_argument('-batchSize', action='store', dest='batchSize', default=256, type=int)
     parser.add_argument('-earlyStop', action='store', dest='earlyStop', default=5)
     parser.add_argument('-checkPoint', action='store', dest='checkPoint', default='./checkPoint/')
     parser.add_argument('-topK', action='store', dest='topK', default=10)
-
+    parser.add_argument('-optimizer_method',
+                        choices=['Adam', 'Adadelta', 'Adagrad', 'RMSProp', 'GradientDescent', 'Momentum'],action='store',dest='optimizer_method',
+                        default='Adam')
 
     args = parser.parse_args()
 
@@ -55,6 +57,7 @@ class Model:
         self.item_lambda_value = args.item_lambda_value
         self.cost_lambda_value = args.cost_lambda_value
         self.loss_lambda_value = args.loss_lambda_value
+        self.optimizer_method = args.optimizer_method
 
         self.testNeg = self.dataSet.getTestNeg(self.test, 99)
         self.add_embedding_matrix()
@@ -175,7 +178,17 @@ class Model:
         self.lr = tf.train.exponential_decay(self.lr, global_step,
                                              self.decay_steps, self.decay_rate, staircase=True)
         '''
-        optimizer = tf.train.AdamOptimizer(float(self.lr))
+        if self.optimizer_method == "Adam":
+            optimizer = tf.train.AdamOptimizer(self.lr)
+        elif self.optimizer_method == "Momentum":
+            optimizer = tf.train.MomentumOptimizer(self.lr, 0.9)
+        elif self.optimizer_method == "Adadelta":
+            optimizer = tf.train.AdadeltaOptimizer()
+        elif self.optimizer_method == "Adagrad":
+            optimizer = tf.train.AdagradOptimizer(self.lr)
+        elif self.optimizer_method == "RMSProp":
+            optimizer = tf.train.RMSPropOptimizer(self.lr)
+
         loss = self.loss + self.loss_lambda_value * self.cost
 
         self.train_step = optimizer.minimize(loss)
