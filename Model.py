@@ -19,12 +19,14 @@ def main():
     parser.add_argument('-item_lambda_value', action='store', dest='item_lambda_value', type=float, default=0.1)
     parser.add_argument('-cost_lambda_value', action='store', dest='cost_lambda_value', type=float, default=1)
     parser.add_argument('-loss_lambda_value', action='store', dest='loss_lambda_value', type=float, default=1)
+    parser.add_argument('-decay_steps', action='store', dest='decay_steps', type=int, default=10000)
+    parser.add_argument('-decay_rate', action='store', dest='decay_rate', type=float, default=0.96)
 
     parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', type=int ,default=500)
     parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', type=int ,default=500)
     parser.add_argument('-userLayer', action='store', dest='userLayer', default=[512, 64])
     parser.add_argument('-itemLayer', action='store', dest='itemLayer', default=[1024, 64])
-    # parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
+    parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
     parser.add_argument('-lr', action='store', dest='lr', type=float, default=0.0001)
     parser.add_argument('-maxEpochs', action='store', dest='maxEpochs', default=50, type=int)
     parser.add_argument('-batchSize', action='store', dest='batchSize', default=256, type=int)
@@ -49,8 +51,12 @@ class Model:
         self.shape = self.dataSet.shape
         self.maxRate = self.dataSet.maxRate
 
+        self.decay_steps = args.decay_steps
+        self.decay_rate = args.decay_rate
+
         self.train = self.dataSet.train
         self.test = self.dataSet.test
+
 
         self.negNum = args.negNum
         self.user_lambda_value = args.user_lambda_value
@@ -173,11 +179,11 @@ class Model:
         self.cost = user_cost + self.cost_lambda_value * item_cost
 
     def add_train_step(self):
-        '''
+        # '''
         global_step = tf.Variable(0, name='global_step', trainable=False)
         self.lr = tf.train.exponential_decay(self.lr, global_step,
                                              self.decay_steps, self.decay_rate, staircase=True)
-        '''
+        # '''
         if self.optimizer_method == "Adam":
             optimizer = tf.train.AdamOptimizer(self.lr)
         elif self.optimizer_method == "Momentum":
