@@ -197,7 +197,7 @@ class Model:
 
         loss = self.loss + self.loss_lambda_value * self.cost
 
-        self.train_step = optimizer.minimize(loss)
+        self.train_step = optimizer.minimize(loss,global_step=global_step)
 
     def init_sess(self):
         self.config = tf.ConfigProto()
