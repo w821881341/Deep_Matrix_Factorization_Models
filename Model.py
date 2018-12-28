@@ -161,9 +161,9 @@ class Model:
         regRate = self.rate / self.maxRate
         losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
         loss = -tf.reduce_sum(losses)
-        # regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
-        # self.loss = loss + self.reg * regLoss
-        self.loss = loss
+        regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
+        self.loss = loss + self.reg * regLoss
+        # self.loss = loss
 
     def add_cost(self):
 
