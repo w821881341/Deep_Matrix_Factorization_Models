@@ -176,7 +176,9 @@ class Model:
                                              self.decay_steps, self.decay_rate, staircase=True)
         '''
         optimizer = tf.train.AdamOptimizer(float(self.lr))
-        self.train_step = optimizer.minimize(self.loss)
+        loss = self.loss + self.loss_lambda_value * self.cost
+
+        self.train_step = optimizer.minimize(loss)
 
     def init_sess(self):
         self.config = tf.ConfigProto()
