@@ -25,8 +25,8 @@ def main():
 
     parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', type=int ,default=500)
     parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', type=int ,default=500)
-    parser.add_argument('-userLayer', action='store', dest='userLayer', default=[512, 64])
-    parser.add_argument('-itemLayer', action='store', dest='itemLayer', default=[1024, 64])
+    parser.add_argument('-userLayer', action='store', dest='userLayer', nargs='+', type=int, default=[512, 64])
+    parser.add_argument('-itemLayer', action='store', dest='itemLayer', nargs='+', type=int, default=[1024, 64])
     parser.add_argument('-reg', action='store', dest='reg', default=1e-3)
     parser.add_argument('-lr', action='store', dest='lr', type=float, default=0.0001)
     parser.add_argument('-maxEpochs', action='store', dest='maxEpochs', default=50, type=int)
