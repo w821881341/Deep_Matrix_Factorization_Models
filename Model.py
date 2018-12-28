@@ -48,6 +48,7 @@ class Model:
         self.test = self.dataSet.test
 
         self.negNum = args.negNum
+        self.lambda_value = args.lambda_value
         self.testNeg = self.dataSet.getTestNeg(self.test, 99)
         self.add_embedding_matrix()
 
@@ -75,7 +76,7 @@ class Model:
 
         self.topK = args.topK
         self.earlyStop = args.earlyStop
-        self.lambda_value = args.lambda_value
+
 
 
     def add_placeholders(self):
@@ -225,10 +226,10 @@ class Model:
             costs.append(tmp_cost)
             if verbose and i % verbose == 0:
                 sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
-                    i, num_batches, np.mean(losses[-verbose:]), np.mean(costs[-verbose:])
+                    i, num_batches, np.mean(losses[-verbose:]), 0.0001*np.mean(costs[-verbose:])
                 ))
                 sys.stdout.flush()
-        loss = np.mean(losses) + np.mean(costs)
+        loss = np.mean(losses) + 0.0001 * np.mean(costs)
         print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
