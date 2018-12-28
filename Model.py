@@ -21,6 +21,7 @@ def main():
     parser.add_argument('-loss_lambda_value', action='store', dest='loss_lambda_value', type=float, default=1)
     parser.add_argument('-decay_steps', action='store', dest='decay_steps', type=int, default=10000)
     parser.add_argument('-decay_rate', action='store', dest='decay_rate', type=float, default=0.96)
+    parser.add_argument('-gpu', action='store', dest='gpu', default='1')
 
     parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', type=int ,default=500)
     parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', type=int ,default=500)
@@ -38,6 +39,8 @@ def main():
                         default='Adam')
 
     args = parser.parse_args()
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
     classifier = Model(args)
 
