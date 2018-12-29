@@ -23,6 +23,8 @@ def main():
     parser.add_argument('-decay_rate', action='store', dest='decay_rate', type=float, default=0.96)
     parser.add_argument('-gpu', action='store', dest='gpu', default='1')
     parser.add_argument('-add_AE', action='store', dest='add_AE',type=int, default=1)
+    parser.add_argument('-add_user_AE', action='store', dest='add_user_AE', type=int, default=1)
+    parser.add_argument('-add_item_AE', action='store', dest='add_item_AE', type=int, default=1)
 
     parser.add_argument('-userAutoRec', action='store', dest='userAutoRec', type=int ,default=500)
     parser.add_argument('-itemAutoRec', action='store', dest='itemAutoRec', type=int ,default=500)
@@ -61,15 +63,19 @@ class Model:
 
         self.train = self.dataSet.train
         self.test = self.dataSet.test
-        self.add_AE = args.add_AE
+        self.no_AE = (args.add_AE == 0)
+        self.no_user_AE = (args.add_user_AE == 0)
+        self.no_item_AE = (args.add_item_AE == 0)
 
 
         self.negNum = args.negNum
         self.user_lambda_value = args.user_lambda_value
         self.item_lambda_value = args.item_lambda_value
+
         self.cost_lambda_value = args.cost_lambda_value
+
         self.loss_lambda_value = args.loss_lambda_value
-        if self.add_AE == 0:
+        if self.no_AE:
             self.loss_lambda_value = 0
         else:
             self.loss_lambda_value = args.loss_lambda_value
@@ -147,17 +153,19 @@ class Model:
             item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
             self.item_Decoder = tf.identity(item_pre_Decoder)
 
+        user_input_num = self.shape[1]
+        item_input_num = self.shape[0]
+        user_input_data = self.user_input
+        item_input_data = self.item_input
 
-        if self.add_AE != 0:
-            user_input_num = self.userAutoRec
-            item_input_num = self.itemAutoRec
-            user_input_data = self.user_Encoder
-            item_input_data = self.item_Encoder
-        else:
-            user_input_num = self.shape[1]
-            item_input_num = self.shape[0]
-            user_input_data = self.user_input
-            item_input_data = self.item_input
+        if not self.no_AE:
+            if not self.no_user_AE:
+                user_input_num = self.userAutoRec
+                user_input_data = self.user_Encoder
+            if not self.no_item_AE:
+                item_input_num = self.itemAutoRec
+                item_input_data = self.item_Encoder
+
 
 
         with tf.name_scope("User_Layer"):
@@ -191,19 +199,22 @@ class Model:
 
     def add_cost(self):
 
-        user_pre_rec_cost = self.user_input - self.user_Decoder
-        user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
-        user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
-        user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
-        user_cost = user_rec_cost + user_reg_cost
-        
-        item_pre_rec_cost = self.item_input - self.item_Decoder
-        item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
-        item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
-        item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
-        item_cost = item_rec_cost + item_reg_cost
+        self.cost = 0
+        if not self.no_user_AE:
+            user_pre_rec_cost = self.user_input - self.user_Decoder
+            user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
+            user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
+            user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
+            user_cost = user_rec_cost + user_reg_cost
+            self.cost += user_cost
 
-        self.cost = user_cost + self.cost_lambda_value * item_cost
+        if not self.no_item_AE:
+            item_pre_rec_cost = self.item_input - self.item_Decoder
+            item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
+            item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
+            item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
+            item_cost = item_rec_cost + item_reg_cost
+            self.cost += self.cost_lambda_value * item_cost
 
     def add_train_step(self):
         # '''
@@ -222,7 +233,7 @@ class Model:
         elif self.optimizer_method == "RMSProp":
             optimizer = tf.train.RMSPropOptimizer(self.lr)
 
-        if self.add_AE == 0:
+        if self.no_AE:
             loss = self.loss
         else:
             loss = self.loss + self.loss_lambda_value * self.cost
@@ -286,7 +297,7 @@ class Model:
             train_r_batch = train_r[min_idx: max_idx]
 
             feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
-            if self.add_AE != 0:
+            if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
                 costs.append(tmp_cost)
@@ -303,7 +314,7 @@ class Model:
                         i, num_batches, np.mean(losses[-verbose:])
                     ))
                     sys.stdout.flush()
-        if self.add_AE != 0:
+        if not self.no_AE:
             loss = np.mean(losses) + self.loss_lambda_value * np.mean(costs)
         else:
             loss = np.mean(losses)
