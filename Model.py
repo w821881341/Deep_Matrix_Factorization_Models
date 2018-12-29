@@ -222,7 +222,10 @@ class Model:
         elif self.optimizer_method == "RMSProp":
             optimizer = tf.train.RMSPropOptimizer(self.lr)
 
-        loss = self.loss + self.loss_lambda_value * self.cost
+        if self.add_AE == 0:
+            loss = self.loss
+        else:
+            loss = self.loss + self.loss_lambda_value * self.cost
 
         self.train_step = optimizer.minimize(loss,global_step=global_step)
 
@@ -283,15 +286,27 @@ class Model:
             train_r_batch = train_r[min_idx: max_idx]
 
             feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
-            _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
-            losses.append(tmp_loss)
-            costs.append(tmp_cost)
-            if verbose and i % verbose == 0:
-                sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
-                    i, num_batches, np.mean(losses[-verbose:]), self.loss_lambda_value * np.mean(costs[-verbose:])
-                ))
-                sys.stdout.flush()
-        loss = np.mean(losses) + self.loss_lambda_value * np.mean(costs)
+            if self.add_AE != 0:
+                _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
+                losses.append(tmp_loss)
+                costs.append(tmp_cost)
+                if verbose and i % verbose == 0:
+                    sys.stdout.write('\r{} / {} : loss = {} / cost = {}'.format(
+                        i, num_batches, np.mean(losses[-verbose:]), self.loss_lambda_value * np.mean(costs[-verbose:])
+                    ))
+                    sys.stdout.flush()
+            else:
+                _, tmp_loss = sess.run([self.train_step, self.loss], feed_dict=feed_dict)
+                losses.append(tmp_loss)
+                if verbose and i % verbose == 0:
+                    sys.stdout.write('\r{} / {} : loss = {}'.format(
+                        i, num_batches, np.mean(losses[-verbose:])
+                    ))
+                    sys.stdout.flush()
+        if self.add_AE != 0:
+            loss = np.mean(losses) + self.loss_lambda_value * np.mean(costs)
+        else:
+            loss = np.mean(losses)
         print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
