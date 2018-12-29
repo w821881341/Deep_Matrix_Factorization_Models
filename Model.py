@@ -69,6 +69,11 @@ class Model:
         self.item_lambda_value = args.item_lambda_value
         self.cost_lambda_value = args.cost_lambda_value
         self.loss_lambda_value = args.loss_lambda_value
+        if self.add_AE == 0:
+            self.loss_lambda_value = 0
+        else:
+            self.loss_lambda_value = args.loss_lambda_value
+
         self.optimizer_method = args.optimizer_method
 
         self.testNeg = self.dataSet.getTestNeg(self.test, 99)
@@ -99,8 +104,6 @@ class Model:
         self.topK = args.topK
         self.earlyStop = args.earlyStop
 
-        if self.add_AE == 0:
-            self.loss_lambda_value = 0
 
 
 
@@ -143,6 +146,7 @@ class Model:
             self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
             item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
             self.item_Decoder = tf.identity(item_pre_Decoder)
+
 
         if self.add_AE != 0:
             user_input_num = self.userAutoRec
