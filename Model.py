@@ -132,10 +132,12 @@ class Model:
             return tf.Variable(tf.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.01), name=name)
 
         with tf.name_scope("User_Encoder"):
-            self.user_V = init_variable([self.shape[1],self.userAutoRec],"User_V")
-            self.user_W = init_variable([self.userAutoRec,self.shape[1]], "User_W")
-            self.user_mu = init_variable([self.userAutoRec], "User_mu")
-            self.user_b = init_variable([self.shape[1]], "User_b")
+            self.user_V = init_variable([self.shape[1],self.userAutoRec],"User_AE_V")
+            self.user_mu = init_variable([self.userAutoRec], "User_AE_mu")
+
+
+            self.user_W = init_variable([self.userAutoRec,self.shape[1]], "User_AE_W")
+            self.user_b = init_variable([self.shape[1]], "User_AE_b")
             user_pre_Encoder = tf.matmul(self.user_input,self.user_V)+self.user_mu
             self.user_Encoder = tf.nn.sigmoid(user_pre_Encoder)
             user_pre_Decoder = tf.matmul(self.user_Encoder, self.user_W) + self.user_b
@@ -144,10 +146,13 @@ class Model:
 
 
         with tf.name_scope("Item_Encoder"):
-            self.item_V = init_variable([self.shape[0],self.itemAutoRec],"Item_V")
-            self.item_W = init_variable([self.itemAutoRec,self.shape[0]], "Item_W")
-            self.item_mu = init_variable([self.itemAutoRec], "Item_mu")
-            self.item_b = init_variable([self.shape[0]], "Item_b")
+
+            self.item_V = init_variable([self.shape[0],self.itemAutoRec],"Item_AE_V")
+            self.item_mu = init_variable([self.itemAutoRec], "Item_AE_mu")
+
+
+            self.item_W = init_variable([self.itemAutoRec,self.shape[0]], "Item_AE_W")
+            self.item_b = init_variable([self.shape[0]], "Item_AE_b")
             item_pre_Encoder = tf.matmul(self.item_input,self.item_V)+self.item_mu
             self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
             item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
@@ -203,17 +208,17 @@ class Model:
         if not self.no_user_AE:
             user_pre_rec_cost = self.user_input - self.user_Decoder
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
-            user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
-            user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
-            user_cost = user_rec_cost + user_reg_cost
+            # user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
+            # user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
+            user_cost = user_rec_cost #+ user_reg_cost
             self.cost += user_cost
 
         if not self.no_item_AE:
             item_pre_rec_cost = self.item_input - self.item_Decoder
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
-            item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
-            item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
-            item_cost = item_rec_cost + item_reg_cost
+            #item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
+            #item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
+            item_cost = item_rec_cost #+ item_reg_cost
             self.cost += self.cost_lambda_value * item_cost
 
     def add_train_step(self):
