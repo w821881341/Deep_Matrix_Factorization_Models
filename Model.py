@@ -141,7 +141,7 @@ class Model:
             for i in range(0, len(self.userAutoRec)-1):
                 user_V = init_variable([self.userAutoRec[i],self.userAutoRec[i+1]],"User_AE_V"+str(i+2))
                 user_mu = init_variable([self.userAutoRec[i+1]], "User_AE_mu"+str(i+2))
-                user_pre_Encoder = tf.matmul(self.user_input, user_V) + user_mu
+                user_pre_Encoder = tf.matmul(user_pre_Encoder, user_V) + user_mu
 
             user_pre_Decoder = user_pre_Encoder
             for i in range(1, len(self.userAutoRec)):
@@ -168,7 +168,7 @@ class Model:
             for i in range(0, len(self.itemAutoRec)-1):
                 item_V = init_variable([self.itemAutoRec[i],self.itemAutoRec[i+1]],"Item_AE_V"+str(i+2))
                 item_mu = init_variable([self.itemAutoRec[i+1]], "Item_AE_mu"+str(i+2))
-                item_pre_Encoder = tf.matmul(self.item_input, item_V) + item_mu
+                item_pre_Encoder = tf.matmul(item_pre_Encoder, item_V) + item_mu
 
             item_pre_Decoder = item_pre_Encoder
             for i in range(1, len(self.itemAutoRec)):
