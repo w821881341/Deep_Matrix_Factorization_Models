@@ -161,7 +161,7 @@ class Model:
         with tf.name_scope("Item_Encoder"):
             item_V1 = init_variable([self.shape[0], self.itemAutoRec[0]], "Item_AE_V1")
             item_mu1 = init_variable([self.itemAutoRec[0]], "Item_AE_mu1")
-            item_W1 = init_variable([self.itemAutoRec[0], self.shape[1]], "Item_AE_W1")
+            item_W1 = init_variable([self.itemAutoRec[0], self.shape[0]], "Item_AE_W1")
             item_b1 = init_variable([self.shape[0]], "Item_AE_b1")
             item_pre_Encoder = tf.matmul(self.item_input, item_V1) + item_mu1
 
