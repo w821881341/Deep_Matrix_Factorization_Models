@@ -171,7 +171,7 @@ class Model:
                 item_pre_Encoder = tf.matmul(self.item_input, item_V) + item_mu
 
             item_pre_Decoder = item_pre_Encoder
-            for i in range(1, len(self.itemAutoRec)-1):
+            for i in range(1, len(self.itemAutoRec)):
                 j = len(self.itemAutoRec) - i
                 item_W = init_variable([self.itemAutoRec[j], self.itemAutoRec[j-1]], "Item_AE_W"+str(j+1))
                 item_b = init_variable([self.itemAutoRec[j-1]], "Item_AE_b"+str(j+1))
