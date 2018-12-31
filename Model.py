@@ -132,41 +132,54 @@ class Model:
             return tf.Variable(tf.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.01), name=name)
 
         with tf.name_scope("User_Encoder"):
-            self.user_V1 = init_variable([self.shape[1], self.userAutoRec[0]], "User_AE_V1")
-            self.user_mu1 = init_variable([self.userAutoRec[0]], "User_AE_mu1")
-            self.user_W1 = init_variable([self.userAutoRec[0], self.shape[1]], "User_AE_W1")
-            self.user_b1 = init_variable([self.shape[1]], "User_AE_b1")
-            user_pre_Encoder = tf.matmul(self.user_input, self.user_V1) + self.user_mu1
-            user_pre_Decoder = tf.matmul(self.user_Encoder, self.user_W1) + self.user_b1
+            user_V1 = init_variable([self.shape[1], self.userAutoRec[0]], "User_AE_V1")
+            user_mu1 = init_variable([self.userAutoRec[0]], "User_AE_mu1")
+            user_W1 = init_variable([self.userAutoRec[0], self.shape[1]], "User_AE_W1")
+            user_b1 = init_variable([self.shape[1]], "User_AE_b1")
+            user_pre_Encoder = tf.matmul(self.user_input, user_V1) + user_mu1
 
             for i in range(0, len(self.userAutoRec)-1):
-                self.user_V = init_variable([self.userAutoRec[i],self.userAutoRec[i+1]],"User_AE_V"+str(i+2))
-                self.user_mu = init_variable([self.userAutoRec[i+1]], "User_AE_mu"+str(i+2))
-                self.user_W = init_variable([self.userAutoRec[i+1], self.userAutoRec[i+1]], "User_AE_W"+str(i+2))
-                self.user_b = init_variable([self.userAutoRec[i]], "User_AE_b"+str(i+2))
-                user_pre_Encoder = tf.matmul(self.user_input, self.user_V) + self.user_mu
-                user_pre_Decoder = tf.matmul(self.user_Encoder, self.user_W) + self.user_b
+                user_V = init_variable([self.userAutoRec[i],self.userAutoRec[i+1]],"User_AE_V"+str(i+2))
+                user_mu = init_variable([self.userAutoRec[i+1]], "User_AE_mu"+str(i+2))
+                user_pre_Encoder = tf.matmul(self.user_input, user_V) + user_mu
+
+            user_pre_Decoder = user_pre_Encoder
+            for i in range(1, len(self.userAutoRec)-1):
+                j = len(self.userAutoRec) - i
+                user_W = init_variable([self.userAutoRec[j], self.userAutoRec[j-1]], "User_AE_W"+str(j+1))
+                user_b = init_variable([self.userAutoRec[j-1]], "User_AE_b"+str(j+1))
+                user_pre_Decoder = tf.matmul(user_pre_Decoder, user_W) + user_b
+
+            user_pre_Decoder = tf.matmul(user_pre_Decoder, user_W1) + user_b1
+
+
             self.user_Encoder = tf.nn.sigmoid(user_pre_Encoder)
             self.user_Decoder = tf.identity(user_pre_Decoder)
 
 
 
         with tf.name_scope("Item_Encoder"):
+            item_V1 = init_variable([self.shape[1], self.itemAutoRec[0]], "Item_AE_V1")
+            item_mu1 = init_variable([self.itemAutoRec[0]], "Item_AE_mu1")
+            item_W1 = init_variable([self.itemAutoRec[0], self.shape[1]], "Item_AE_W1")
+            item_b1 = init_variable([self.shape[1]], "Item_AE_b1")
+            item_pre_Encoder = tf.matmul(self.item_input, item_V1) + item_mu1
 
-            self.item_V1 = init_variable([self.shape[1], self.itemAutoRec[0]], "item_AE_V1")
-            self.item_mu1 = init_variable([self.itemAutoRec[0]], "item_AE_mu1")
-            self.item_W1 = init_variable([self.itemAutoRec[0], self.shape[1]], "item_AE_W1")
-            self.item_b1 = init_variable([self.shape[1]], "item_AE_b1")
-            item_pre_Encoder = tf.matmul(self.item_input, self.item_V1) + self.item_mu1
-            item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W1) + self.item_b1
-            
             for i in range(0, len(self.itemAutoRec)-1):
-                self.item_V = init_variable([self.itemAutoRec[i],self.itemAutoRec[i+1]],"item_AE_V"+str(i+2))
-                self.item_mu = init_variable([self.itemAutoRec[i+1]], "item_AE_mu"+str(i+2))
-                self.item_W = init_variable([self.itemAutoRec[i+1], self.itemAutoRec[i+1]], "item_AE_W"+str(i+2))
-                self.item_b = init_variable([self.itemAutoRec[i]], "item_AE_b"+str(i+2))
-                item_pre_Encoder = tf.matmul(self.item_input, self.item_V) + self.item_mu
-                item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
+                item_V = init_variable([self.itemAutoRec[i],self.itemAutoRec[i+1]],"Item_AE_V"+str(i+2))
+                item_mu = init_variable([self.itemAutoRec[i+1]], "Item_AE_mu"+str(i+2))
+                item_pre_Encoder = tf.matmul(self.item_input, item_V) + item_mu
+
+            item_pre_Decoder = item_pre_Encoder
+            for i in range(1, len(self.itemAutoRec)-1):
+                j = len(self.itemAutoRec) - i
+                item_W = init_variable([self.itemAutoRec[j], self.itemAutoRec[j-1]], "Item_AE_W"+str(j+1))
+                item_b = init_variable([self.itemAutoRec[j-1]], "Item_AE_b"+str(j+1))
+                item_pre_Decoder = tf.matmul(item_pre_Decoder, item_W) + item_b
+
+            item_pre_Decoder = tf.matmul(item_pre_Decoder, item_W1) + item_b1
+
+
             self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
             self.item_Decoder = tf.identity(item_pre_Decoder)
 
