@@ -125,8 +125,12 @@ class Model:
         self.item_user_embedding = tf.transpose(self.user_item_embedding)
 
     def add_model(self):
-        self.user_input = tf.nn.embedding_lookup(self.user_item_embedding, self.user)
-        self.item_input = tf.nn.embedding_lookup(self.item_user_embedding, self.item)
+        # self.user_input = tf.nn.embedding_lookup(self.user_item_embedding, self.user)
+        # self.item_input = tf.nn.embedding_lookup(self.item_user_embedding, self.item)
+        self.user_input = tf.cast(self.user,tf.float32)
+        self.item_input = tf.cast(self.item,tf.float32)
+
+        self.mask = tf.sign(self.rate)
 
         def init_variable(shape, name):
             return tf.Variable(tf.truncated_normal(shape=shape, dtype=tf.float32, stddev=0.01), name=name)
@@ -206,7 +210,7 @@ class Model:
 
         self.cost = 0
         if not self.no_user_AE:
-            user_pre_rec_cost = self.user_input - self.user_Decoder
+            user_pre_rec_cost = (self.user_input - self.user_Decoder) * self.mask
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
             # user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
             # user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
@@ -214,7 +218,7 @@ class Model:
             self.cost += user_cost
 
         if not self.no_item_AE:
-            item_pre_rec_cost = self.item_input - self.item_Decoder
+            item_pre_rec_cost = (self.item_input - self.item_Decoder) * self.mask
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
             #item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
             #item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
