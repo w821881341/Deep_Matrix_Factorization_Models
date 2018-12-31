@@ -144,7 +144,7 @@ class Model:
                 user_pre_Encoder = tf.matmul(self.user_input, user_V) + user_mu
 
             user_pre_Decoder = user_pre_Encoder
-            for i in range(1, len(self.userAutoRec)-1):
+            for i in range(1, len(self.userAutoRec)):
                 j = len(self.userAutoRec) - i
                 user_W = init_variable([self.userAutoRec[j], self.userAutoRec[j-1]], "User_AE_W"+str(j+1))
                 user_b = init_variable([self.userAutoRec[j-1]], "User_AE_b"+str(j+1))
