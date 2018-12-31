@@ -190,10 +190,10 @@ class Model:
 
         if not self.no_AE:
             if not self.no_user_AE:
-                user_input_num = self.userAutoRec[len(self.userAutoRec) - i]
+                user_input_num = self.userAutoRec[len(self.userAutoRec) - 1]
                 user_input_data = self.user_Encoder
             if not self.no_item_AE:
-                item_input_num = self.itemAutoRec[len(self.itemAutoRec) - i]
+                item_input_num = self.itemAutoRec[len(self.itemAutoRec) - 1]
                 item_input_data = self.item_Encoder
 
 
