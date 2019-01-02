@@ -60,6 +60,7 @@ class Model:
         self.maxRate = self.dataSet.maxRate
 
         self.batchSize = args.batchSize
+        self.drop = args.drop
 
 
         self.decay_steps = args.decay_steps
