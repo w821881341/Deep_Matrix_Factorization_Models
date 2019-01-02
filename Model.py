@@ -182,21 +182,28 @@ class Model:
                 item_input_data = self.item_Encoder
 
 
-
         with tf.name_scope("User_Layer"):
             user_W1 = init_variable([user_input_num, self.userLayer[0]], "user_W1")
+            tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
+
             user_out = tf.matmul(user_input_data, user_W1)
             for i in range(0, len(self.userLayer)-1):
                 W = init_variable([self.userLayer[i], self.userLayer[i+1]], "user_W"+str(i+2))
                 b = init_variable([self.userLayer[i+1]], "user_b"+str(i+2))
+                tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
+                tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 user_out = tf.nn.relu(tf.add(tf.matmul(user_out, W), b))
 
         with tf.name_scope("Item_Layer"):
             item_W1 = init_variable([item_input_num, self.itemLayer[0]], "item_W1")
+            tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
+
             item_out = tf.matmul(item_input_data, item_W1)
             for i in range(0, len(self.itemLayer)-1):
                 W = init_variable([self.itemLayer[i], self.itemLayer[i+1]], "item_W"+str(i+2))
                 b = init_variable([self.itemLayer[i+1]], "item_b"+str(i+2))
+                tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
+                tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 item_out = tf.nn.relu(tf.add(tf.matmul(item_out, W), b))
 
         norm_user_output = tf.sqrt(tf.reduce_sum(tf.square(user_out), axis=1))
@@ -206,10 +213,13 @@ class Model:
 
     def add_loss(self):
         regRate = self.rate / self.maxRate
-        losses = (regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)) * self.mask
+        losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
         loss = -tf.reduce_sum(losses)
-        regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
-        self.loss = loss + self.reg * regLoss
+        regularizer = tf.contrib.layers.l2_regularizer(self.reg)
+
+        regLoss = tf.contrib.layers.apply_regularization(regularizer)
+        # regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
+        self.loss = loss + regLoss
         # self.loss = loss
 
     def add_cost(self):
@@ -224,7 +234,7 @@ class Model:
             self.cost += user_cost
 
         if not self.no_item_AE:
-            item_pre_rec_cost = (self.item_input - self.item_Decoder) * self.item_mask
+            item_pre_rec_cost = (self.item_input - self.item_Decoder)
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
             item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
             item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
@@ -299,7 +309,6 @@ class Model:
         train_u = train_u[shuffled_idx]
         train_i = train_i[shuffled_idx]
         train_r = train_r[shuffled_idx]
-        train_mask = train_mask[shuffled_idx]
 
         num_batches = len(train_u) // self.batchSize + 1
 
@@ -311,9 +320,8 @@ class Model:
             train_u_batch = train_u[min_idx: max_idx]
             train_i_batch = train_i[min_idx: max_idx]
             train_r_batch = train_r[min_idx: max_idx]
-            train_mask_batch = train_mask[min_idx: max_idx]
 
-            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,train_mask_batch)
+            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
             if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
@@ -338,10 +346,9 @@ class Model:
         print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
-    def create_feed_dict(self, u, i, train_mask, r=None, drop=None):
+    def create_feed_dict(self, u, i, r=None, drop=None):
         return {self.user: u,
                 self.item: i,
-                self.mask: train_mask,
                 self.rate: r,
                 self.drop: drop}
 
@@ -365,10 +372,9 @@ class Model:
         NDCG = []
         testUser = self.testNeg[0]
         testItem = self.testNeg[1]
-        testMask = self.testNeg[2]
         for i in range(len(testUser)):
             target = testItem[i][0]
-            feed_dict = self.create_feed_dict(testUser[i], testItem[i],testMask[i])
+            feed_dict = self.create_feed_dict(testUser[i], testItem[i])
             predict = sess.run(self.y_, feed_dict=feed_dict)
 
             item_score_dict = {}
