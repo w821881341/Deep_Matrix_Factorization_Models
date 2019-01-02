@@ -191,14 +191,15 @@ class Model:
             user_W1 = init_variable([user_input_num, self.userLayer[0]], "user_W1")
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
 
+
             user_out = tf.matmul(user_input_data, user_W1)
+            user_out = tf.nn.dropout(user_out, self.drop)
             for i in range(0, len(self.userLayer)-1):
                 W = init_variable([self.userLayer[i], self.userLayer[i+1]], "user_W"+str(i+2))
                 b = init_variable([self.userLayer[i+1]], "user_b"+str(i+2))
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 user_out = tf.nn.relu(tf.add(tf.matmul(user_out, W), b))
-                user_out = tf.nn.dropout(user_out, self.drop)
 
 
         with tf.name_scope("Item_Layer"):
@@ -206,13 +207,13 @@ class Model:
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
 
             item_out = tf.matmul(item_input_data, item_W1)
+            item_out = tf.nn.dropout(item_out, self.drop)
             for i in range(0, len(self.itemLayer)-1):
                 W = init_variable([self.itemLayer[i], self.itemLayer[i+1]], "item_W"+str(i+2))
                 b = init_variable([self.itemLayer[i+1]], "item_b"+str(i+2))
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 item_out = tf.nn.relu(tf.add(tf.matmul(item_out, W), b))
-                item_out = tf.nn.dropout(item_out, self.drop)
 
         norm_user_output = tf.sqrt(tf.reduce_sum(tf.square(user_out), axis=1))
         norm_item_output = tf.sqrt(tf.reduce_sum(tf.square(item_out), axis=1))
