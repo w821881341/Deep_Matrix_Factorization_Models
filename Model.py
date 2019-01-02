@@ -195,6 +195,8 @@ class Model:
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 user_out = tf.nn.relu(tf.add(tf.matmul(user_out, W), b))
+                user_out = tf.nn.dropout(user_out, self.drop)
+
 
         with tf.name_scope("Item_Layer"):
             item_W1 = init_variable([item_input_num, self.itemLayer[0]], "item_W1")
@@ -207,6 +209,7 @@ class Model:
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, W)
                 tf.add_to_collection(tf.GraphKeys.WEIGHTS, b)
                 item_out = tf.nn.relu(tf.add(tf.matmul(item_out, W), b))
+                item_out = tf.nn.dropout(item_out, self.drop)
 
         norm_user_output = tf.sqrt(tf.reduce_sum(tf.square(user_out), axis=1))
         norm_item_output = tf.sqrt(tf.reduce_sum(tf.square(item_out), axis=1))
@@ -228,7 +231,7 @@ class Model:
 
         self.cost = 0
         if not self.no_user_AE:
-            user_pre_rec_cost = (self.user_input - self.user_Decoder)
+            user_pre_rec_cost = (self.user_input - self.user_Decoder) * self.user_mask
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
             user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
             user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
@@ -236,7 +239,7 @@ class Model:
             self.cost += user_cost
 
         if not self.no_item_AE:
-            item_pre_rec_cost = (self.item_input - self.item_Decoder)
+            item_pre_rec_cost = (self.item_input - self.item_Decoder) * self.item_mask
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
             item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
             item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
@@ -323,7 +326,7 @@ class Model:
             train_i_batch = train_i[min_idx: max_idx]
             train_r_batch = train_r[min_idx: max_idx]
 
-            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
+            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,drop=0.5)
             if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
@@ -376,7 +379,7 @@ class Model:
         testItem = self.testNeg[1]
         for i in range(len(testUser)):
             target = testItem[i][0]
-            feed_dict = self.create_feed_dict(testUser[i], testItem[i])
+            feed_dict = self.create_feed_dict(testUser[i], testItem[i],drop=1)
             predict = sess.run(self.y_, feed_dict=feed_dict)
 
             item_score_dict = {}
