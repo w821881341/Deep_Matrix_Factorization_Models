@@ -215,7 +215,7 @@ class Model:
         regRate = self.rate / self.maxRate
         losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
         loss = -tf.reduce_sum(losses)
-        regularizer = tf.contrib.layers.l2_regularizer(self.reg)
+        regularizer = tf.contrib.layers.l2_regularizer(self.reg/self.batchSize)
 
         regLoss = tf.contrib.layers.apply_regularization(regularizer)
         # regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
