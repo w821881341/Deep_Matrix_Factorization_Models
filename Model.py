@@ -60,7 +60,7 @@ class Model:
         self.maxRate = self.dataSet.maxRate
 
         self.batchSize = args.batchSize
-        self.drop = args.drop
+        self.dropout = args.drop
 
 
         self.decay_steps = args.decay_steps
@@ -329,7 +329,7 @@ class Model:
             train_i_batch = train_i[min_idx: max_idx]
             train_r_batch = train_r[min_idx: max_idx]
 
-            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,drop=self.drop)
+            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,drop=self.dropout)
             if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
