@@ -303,7 +303,7 @@ class Model:
         print("Training complete!")
 
     def run_epoch(self, sess, verbose=10):
-        train_u, train_i, train_r, train_mask = self.dataSet.getInstances(self.train, self.negNum)
+        train_u, train_i, train_r = self.dataSet.getInstances(self.train, self.negNum)
         train_len = len(train_u)
         shuffled_idx = np.random.permutation(np.arange(train_len))
         train_u = train_u[shuffled_idx]
