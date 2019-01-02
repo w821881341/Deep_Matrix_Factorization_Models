@@ -117,16 +117,21 @@ class Model:
     def add_placeholders(self):
         self.user = tf.placeholder(tf.int32)
         self.item = tf.placeholder(tf.int32)
+        self.mask = tf.placeholder(tf.float32)
         self.rate = tf.placeholder(tf.float32)
         self.drop = tf.placeholder(tf.float32)
 
     def add_embedding_matrix(self):
         self.user_item_embedding = tf.convert_to_tensor(self.dataSet.getEmbedding())
         self.item_user_embedding = tf.transpose(self.user_item_embedding)
+        # self.user_mask_embedding = tf.convert_to_tensor(self.dataSet.getMaskEmbedding())
+        # self.item_mask_embedding = tf.transpose(self.user_mask_embedding)
 
     def add_model(self):
         self.user_input = tf.nn.embedding_lookup(self.user_item_embedding, self.user)
+        # self.user_mask = tf.nn.embedding_lookup(self.user_mask_embedding, self.user)
         self.item_input = tf.nn.embedding_lookup(self.item_user_embedding, self.item)
+        # self.item_mask = tf.nn.embedding_lookup(self.item_mask_embedding, self.item)
         # self.user_input = tf.to_float(self.user)
         # self.item_input = tf.to_float(self.item)
 
@@ -201,7 +206,7 @@ class Model:
 
     def add_loss(self):
         regRate = self.rate / self.maxRate
-        losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
+        losses = (regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)) * self.mask
         loss = -tf.reduce_sum(losses)
         regLoss = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables()])
         self.loss = loss + self.reg * regLoss
@@ -211,7 +216,7 @@ class Model:
 
         self.cost = 0
         if not self.no_user_AE:
-            user_pre_rec_cost = (self.user_input - self.user_Decoder) * self.user_mask
+            user_pre_rec_cost = (self.user_input - self.user_Decoder)
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
             user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
             user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
@@ -288,12 +293,13 @@ class Model:
         print("Training complete!")
 
     def run_epoch(self, sess, verbose=10):
-        train_u, train_i, train_r = self.dataSet.getInstances(self.train, self.negNum)
+        train_u, train_i, train_r, train_mask = self.dataSet.getInstances(self.train, self.negNum)
         train_len = len(train_u)
         shuffled_idx = np.random.permutation(np.arange(train_len))
         train_u = train_u[shuffled_idx]
         train_i = train_i[shuffled_idx]
         train_r = train_r[shuffled_idx]
+        train_mask = train_mask[shuffled_idx]
 
         num_batches = len(train_u) // self.batchSize + 1
 
@@ -305,8 +311,9 @@ class Model:
             train_u_batch = train_u[min_idx: max_idx]
             train_i_batch = train_i[min_idx: max_idx]
             train_r_batch = train_r[min_idx: max_idx]
+            train_mask_batch = train_mask[min_idx: max_idx]
 
-            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch)
+            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,train_mask_batch)
             if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
@@ -331,9 +338,10 @@ class Model:
         print("\nMean loss+cost in this epoch is: {}".format(loss))
         return loss
 
-    def create_feed_dict(self, u, i, r=None, drop=None):
+    def create_feed_dict(self, u, i, train_mask, r=None, drop=None):
         return {self.user: u,
                 self.item: i,
+                self.mask: train_mask,
                 self.rate: r,
                 self.drop: drop}
 

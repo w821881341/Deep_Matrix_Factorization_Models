@@ -67,6 +67,7 @@ class DataSet(object):
             dataDict[(i[0], i[1])] = i[2]
         return dataDict
 
+
     def getEmbedding(self):
         train_matrix = np.zeros([self.shape[0], self.shape[1]], dtype=np.float32)
         for i in self.train:
@@ -76,16 +77,27 @@ class DataSet(object):
             train_matrix[user][movie] = rating
         return np.array(train_matrix)
 
+    # def getMaskEmbedding(self):
+    #     mask_matrix = np.zeros([self.shape[0], self.shape[1]], dtype=np.float32)
+    #     for i in self.mask:
+    #         user = i[0]
+    #         movie = i[1]
+    #         mask = i[2]
+    #         mask_matrix[user][movie] = mask
+    #     return np.array(mask_matrix)
+
     def getInstances(self, data, negNum):
         user = []
         item = []
         rate = []
+        mask = []
         for i in data:
             user.append(i[0])
             item.append(i[1])
             rate.append(i[2])
             neglist = set()
             neglist.add(i)
+            mask.append(1.0)
             for t in range(negNum):
                 j = np.random.randint(self.shape[1])
                 while (i[0], j) in self.trainDict or j in neglist: #while positive
@@ -94,7 +106,9 @@ class DataSet(object):
                 user.append(i[0])
                 item.append(j)
                 rate.append(0.0)
-        return np.array(user), np.array(item), np.array(rate)
+                mask.append(0.0)
+        # self.mask = mask
+        return np.array(user), np.array(item), np.array(rate),np.array(mask)
 
     def getTestNeg(self, testData, negNum):
         user = []
