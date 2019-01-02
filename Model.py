@@ -365,9 +365,10 @@ class Model:
         NDCG = []
         testUser = self.testNeg[0]
         testItem = self.testNeg[1]
+        testMask = self.testNeg[2]
         for i in range(len(testUser)):
             target = testItem[i][0]
-            feed_dict = self.create_feed_dict(testUser[i], testItem[i])
+            feed_dict = self.create_feed_dict(testUser[i], testItem[i],testMask[i])
             predict = sess.run(self.y_, feed_dict=feed_dict)
 
             item_score_dict = {}

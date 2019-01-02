@@ -113,6 +113,7 @@ class DataSet(object):
     def getTestNeg(self, testData, negNum):
         user = []
         item = []
+        mask = []
         for s in testData:
             tmp_user = []
             tmp_item = []
@@ -122,6 +123,7 @@ class DataSet(object):
             tmp_item.append(i)
             neglist = set()
             neglist.add(i)
+            mask.append(1.0)
             for t in range(negNum):
                 j = np.random.randint(self.shape[1])
                 while (u, j) in self.trainDict or j in neglist:
@@ -131,4 +133,5 @@ class DataSet(object):
                 tmp_item.append(j)
             user.append(tmp_user)
             item.append(tmp_item)
-        return [np.array(user), np.array(item)]
+            mask.append(0.0)
+        return [np.array(user), np.array(item),np.array(mask)]
