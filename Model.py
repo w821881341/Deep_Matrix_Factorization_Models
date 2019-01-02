@@ -213,17 +213,17 @@ class Model:
         if not self.no_user_AE:
             user_pre_rec_cost = (self.user_input - self.user_Decoder) * self.user_mask
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
-            # user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
-            # user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
-            user_cost = user_rec_cost #/ self.shape[1] #+ user_reg_cost
+            user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
+            user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
+            user_cost = user_rec_cost / self.shape[1] + user_reg_cost
             self.cost += user_cost
 
         if not self.no_item_AE:
             item_pre_rec_cost = (self.item_input - self.item_Decoder) * self.item_mask
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
-            #item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
-            #item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
-            item_cost = item_rec_cost #/ self.shape[0]#+ item_reg_cost
+            item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
+            item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
+            item_cost = item_rec_cost / self.shape[0] + item_reg_cost
             self.cost += self.cost_lambda_value * item_cost
 
     def add_train_step(self):
@@ -352,8 +352,6 @@ class Model:
                 if item == targetItem:
                     return math.log(2) / math.log(i+2)
             return 0
-
-
 
         hr =[]
         NDCG = []

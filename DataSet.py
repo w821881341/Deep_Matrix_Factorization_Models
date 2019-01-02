@@ -84,10 +84,13 @@ class DataSet(object):
             user.append(i[0])
             item.append(i[1])
             rate.append(i[2])
+            neglist = set()
+            neglist.add(i)
             for t in range(negNum):
                 j = np.random.randint(self.shape[1])
-                while (i[0], j) in self.trainDict: #while positive
+                while (i[0], j) in self.trainDict or j in neglist: #while positive
                     j = np.random.randint(self.shape[1])
+                neglist.add(j)
                 user.append(i[0])
                 item.append(j)
                 rate.append(0.0)
