@@ -21,6 +21,8 @@ def main():
     parser.add_argument('-loss_lambda_value', action='store', dest='loss_lambda_value', type=float, default=1)
     parser.add_argument('-decay_steps', action='store', dest='decay_steps', type=int, default=10000)
     parser.add_argument('-decay_rate', action='store', dest='decay_rate', type=float, default=0.96)
+    parser.add_argument('-drop', action='store', dest='drop', type=float, default=0.5)
+
     parser.add_argument('-gpu', action='store', dest='gpu', default='1')
     parser.add_argument('-add_AE', action='store', dest='add_AE',type=int, default=1)
     parser.add_argument('-add_user_AE', action='store', dest='add_user_AE', type=int, default=1)
@@ -326,7 +328,7 @@ class Model:
             train_i_batch = train_i[min_idx: max_idx]
             train_r_batch = train_r[min_idx: max_idx]
 
-            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,drop=0.5)
+            feed_dict = self.create_feed_dict(train_u_batch, train_i_batch, train_r_batch,drop=self.drop)
             if not self.no_AE:
                 _, tmp_loss, tmp_cost = sess.run([self.train_step, self.loss, self.cost], feed_dict=feed_dict)
                 losses.append(tmp_loss)
