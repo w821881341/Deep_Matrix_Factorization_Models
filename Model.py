@@ -57,6 +57,9 @@ class Model:
         self.shape = self.dataSet.shape
         self.maxRate = self.dataSet.maxRate
 
+        self.batchSize = args.batchSize
+
+
         self.decay_steps = args.decay_steps
         self.decay_rate = args.decay_rate
         self.reg = args.reg
@@ -105,7 +108,6 @@ class Model:
         self.init_sess()
 
         self.maxEpochs = args.maxEpochs
-        self.batchSize = args.batchSize
 
         self.topK = args.topK
         self.earlyStop = args.earlyStop
