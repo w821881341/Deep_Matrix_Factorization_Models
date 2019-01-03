@@ -234,7 +234,7 @@ class Model:
     def add_loss(self):
         # regRate = self.rate / self.maxRate
         # losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
-        losses = self.y_ * tf.log(self.y_) + (1 - self.y_) * tf.log(1 - self.y_)
+        losses = self.rate * tf.log(self.y_) + (1 - self.rate) * tf.log(1 - self.y_)
 
         loss = -tf.reduce_sum(losses)
         regularizer = tf.contrib.layers.l2_regularizer(self.reg/self.batchSize)
