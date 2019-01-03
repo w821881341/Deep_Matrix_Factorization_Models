@@ -196,15 +196,15 @@ class Model:
                 item_input_num = self.itemAutoRec
                 item_input_data = self.item_Encoder
 
-        user_input_data = tf.nn.dropout(user_input_data, self.drop)
-        item_input_data = tf.nn.dropout(item_input_data, self.drop)
+        # user_input_data = tf.nn.dropout(user_input_data, self.drop)
+        # item_input_data = tf.nn.dropout(item_input_data, self.drop)
         with tf.name_scope("User_Layer"):
             user_W1 = init_variable([user_input_num, self.userLayer[0]], "user_W1")
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
 
 
             user_out = tf.matmul(user_input_data, user_W1)
-            user_out = tf.nn.dropout(user_out, self.drop)
+            # user_out = tf.nn.dropout(user_out, self.drop)
             for i in range(0, len(self.userLayer)-1):
                 W = init_variable([self.userLayer[i], self.userLayer[i+1]], "user_W"+str(i+2))
                 b = init_variable([self.userLayer[i+1]], "user_b"+str(i+2))
@@ -218,7 +218,7 @@ class Model:
             tf.add_to_collection(tf.GraphKeys.WEIGHTS, user_W1)
 
             item_out = tf.matmul(item_input_data, item_W1)
-            item_out = tf.nn.dropout(item_out, self.drop)
+            # item_out = tf.nn.dropout(item_out, self.drop)
             for i in range(0, len(self.itemLayer)-1):
                 W = init_variable([self.itemLayer[i], self.itemLayer[i+1]], "item_W"+str(i+2))
                 b = init_variable([self.itemLayer[i+1]], "item_b"+str(i+2))
@@ -232,8 +232,10 @@ class Model:
         self.y_ = tf.maximum(1e-6, self.y_)
 
     def add_loss(self):
-        regRate = self.rate / self.maxRate
-        losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
+        # regRate = self.rate / self.maxRate
+        # losses = regRate * tf.log(self.y_) + (1 - regRate) * tf.log(1 - self.y_)
+        losses = self.y_ * tf.log(self.y_) + (1 - self.y_) * tf.log(1 - self.y_)
+
         loss = -tf.reduce_sum(losses)
         regularizer = tf.contrib.layers.l2_regularizer(self.reg/self.batchSize)
 
@@ -250,7 +252,7 @@ class Model:
             user_rec_cost = tf.square(self.l2_norm(user_pre_rec_cost))
             user_pre_reg_cost = tf.square(self.l2_norm(self.user_W)) + tf.square(self.l2_norm(self.user_V))
             user_reg_cost = self.user_lambda_value * 0.5 * user_pre_reg_cost
-            user_cost = user_rec_cost / self.shape[1] + user_reg_cost
+            user_cost = user_rec_cost + user_reg_cost
             self.cost += user_cost
 
         if not self.no_item_AE:
@@ -258,7 +260,7 @@ class Model:
             item_rec_cost = tf.square(self.l2_norm(item_pre_rec_cost))
             item_pre_reg_cost = tf.square(self.l2_norm(self.item_W)) + tf.square(self.l2_norm(self.item_V))
             item_reg_cost = self.item_lambda_value * 0.5 * item_pre_reg_cost
-            item_cost = item_rec_cost / self.shape[0] + item_reg_cost
+            item_cost = item_rec_cost + item_reg_cost
             self.cost += self.cost_lambda_value * item_cost
 
     def add_train_step(self):
