@@ -154,11 +154,11 @@ class Model:
             self.user_W = init_variable([self.userAutoRec,self.shape[1]], "User_AE_W")
             self.user_b = init_variable([self.shape[1]], "User_AE_b")
 
-            user_input_data = tf.nn.dropout(self.user_input, self.drop)
+            # user_input_data = tf.nn.dropout(self.user_input, self.drop)
 
-            user_pre_Encoder = tf.matmul(user_input_data,self.user_V)+self.user_mu
+            user_pre_Encoder = tf.matmul(self.user_input,self.user_V)+self.user_mu
             self.user_Encoder = tf.nn.sigmoid(user_pre_Encoder)
-            self.user_Encoder = tf.nn.dropout(self.user_Encoder, self.drop)
+            # self.user_Encoder = tf.nn.dropout(self.user_Encoder, self.drop)
 
             user_pre_Decoder = tf.matmul(self.user_Encoder, self.user_W) + self.user_b
             self.user_Decoder = tf.identity(user_pre_Decoder)
@@ -174,11 +174,11 @@ class Model:
             self.item_W = init_variable([self.itemAutoRec,self.shape[0]], "Item_AE_W")
             self.item_b = init_variable([self.shape[0]], "Item_AE_b")
 
-            item_input_data = tf.nn.dropout(self.item_input, self.drop)
+            # item_input_data = tf.nn.dropout(self.item_input, self.drop)
 
-            item_pre_Encoder = tf.matmul(item_input_data,self.item_V)+self.item_mu
+            item_pre_Encoder = tf.matmul(self.item_input,self.item_V)+self.item_mu
             self.item_Encoder = tf.nn.sigmoid(item_pre_Encoder)
-            self.item_Encoder = tf.nn.dropout(self.item_Encoder, self.drop)
+            # self.item_Encoder = tf.nn.dropout(self.item_Encoder, self.drop)
 
             item_pre_Decoder = tf.matmul(self.item_Encoder, self.item_W) + self.item_b
             self.item_Decoder = tf.identity(item_pre_Decoder)
